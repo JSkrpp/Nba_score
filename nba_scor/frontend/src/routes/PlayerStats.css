@@ -1,0 +1,35 @@
+.player-container {
+  padding: 16px;
+  text-align: center;
+}
+
+.player-name {
+  font-size: 1.8rem;
+  margin-bottom: 8px;
+}
+
+.player-id {
+  color: #555;
+  margin-bottom: 16px;
+}
+
+.player-photo {
+  width: 520px;
+  height: auto;
+  border-radius: 16px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  margin-bottom: 16px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+
+.player-note {
+  color: #666;
+}
+
+.player-loading,
+.player-error {
+  padding: 20px;
+  text-align: center;
+  font-size: 1.2rem;
+}
