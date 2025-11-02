@@ -1,9 +1,7 @@
 .players-container {
-  border: 1px, solid rgba(0, 0, 0, 0.1);
   text-align: left;
   display: flex;
   flex-direction: column;
-  padding: 1rem;
   gap: 1rem;
   height: calc(100vh - 60px); /* Subtract navbar height */
   overflow: hidden;
@@ -43,7 +41,7 @@
 .players-data {
   flex: 1;
   overflow-y: auto;
-  min-height: 0;
+  min-height: 0; /* This is important for flex child scrolling */
 }
 
 

@@ -1,13 +1,11 @@
 import React from 'react'
 import { useParams } from 'react-router-dom'
-import './PlayerStats.css'
 
 export default function PlayerStats() {
   const { playerId } = useParams()
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState(null)
   const [playerName, setPlayerName] = React.useState('')
-  const [photoUrl, setPhotoUrl] = React.useState('')
 
   React.useEffect(() => {
     let mounted = true
@@ -19,7 +17,7 @@ export default function PlayerStats() {
       })
       .then((data) => {
         if (!mounted) return
-        
+        // Try to read DISPLAY_FIRST_LAST from headers/result row if present
         if (data.player_info && data.headers) {
           const headers = data.headers
           const row = data.player_info
@@ -27,19 +25,18 @@ export default function PlayerStats() {
           if (nameIndex !== -1) {
             setPlayerName(row[nameIndex])
           } else {
+            // fallback to first + last if available
             const fIdx = headers.indexOf('FIRST_NAME')
             const lIdx = headers.indexOf('LAST_NAME')
             if (fIdx !== -1 && lIdx !== -1) setPlayerName(`${row[fIdx]} ${row[lIdx]}`)
             else setPlayerName('Unknown Player')
           }
         } else if (data.player_info && typeof data.player_info === 'object') {
-
+          // fallback structure handling
           setPlayerName(data.player_info.display_first_last || data.player_info.first_name + ' ' + data.player_info.last_name || 'Unknown Player')
         } else {
           setPlayerName('Unknown Player')
         }
-
-        setPhotoUrl('https://cdn.nba.com/headshots/nba/latest/1040x760/' + playerId + '.png')
         setError(null)
       })
       .catch((err) => {
@@ -58,15 +55,10 @@ export default function PlayerStats() {
   if (error) return <div>Error loading player: {error}</div>
 
   return (
-    <div>
-        {photoUrl && (
-        <div className="player-photo-container">
-            <img src={photoUrl} alt={playerName} className="player-photo" />
-        </div>
-      )}
+    <div style={{ padding: 16 }}>
       <h2>{playerName}</h2>
       <p>Player ID: {playerId}</p>
-
+      <p>(More stats will be added here.)</p>
     </div>
   )
 }
