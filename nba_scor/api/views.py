@@ -7,19 +7,28 @@ from nba_api.live.nba.endpoints import scoreboard
 
 
 def live_game(request):
-    scoreboard_data = scoreboard.ScoreBoard()
-    games_json = scoreboard_data.get_dict()
-    games = games_json['scoreboard']['games']
-    return JsonResponse(games, safe=False)
+    try:
+        scoreboard_data = scoreboard.ScoreBoard()
+        games_json = scoreboard_data.get_dict()
+        games = games_json['scoreboard']['games']
+        return JsonResponse(games, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
 
 
 def get_all_teams(request):
-    all_teams = teams.get_teams()
-    return JsonResponse(all_teams, safe=False)
+    try:
+        all_teams = teams.get_teams()
+        return JsonResponse(all_teams, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
 
 def get_all_players(request):
-    all_players = players.get_active_players()
-    return JsonResponse(all_players, safe=False)
+    try:
+        all_players = players.get_active_players()
+        return JsonResponse(all_players, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
 
 def get_player_stats(request, player_id):
     try:
