@@ -54,19 +54,19 @@ export default function Players() {
       <div className="players-data">
         {players
           ?.filter((player) =>
-            `${player.first_name} ${player.last_name}`
+            `${player.DISPLAY_FIRST_LAST || ''}`
               .toLowerCase()
               .includes(searchQuery.toLowerCase())
           )
           .map((player) => (
             <Link
-              to={`/players/${player.id}`}
-              key={player.id}
+              to={`/players/${player.PERSON_ID}`}
+              key={player.PERSON_ID}
               style={{ textDecoration: 'none', color: 'inherit' }}
             >
               <PlayerCard
-                lastName={player.last_name}
-                firstName={player.first_name}
+                lastName={player.DISPLAY_LAST_COMMA_FIRST?.split(', ')[0] || player.LASTNAME || ''}
+                firstName={player.DISPLAY_LAST_COMMA_FIRST?.split(', ')[1] || player.FIRSTNAME || ''}
               />
             </Link>
           ))}

@@ -2,9 +2,8 @@ from django.shortcuts import render
 from django.http import JsonResponse, Http404
 from .models import Player
 from nba_api.stats.static import teams, players
-from nba_api.stats.endpoints import playercareerstats, playergamelog
+from nba_api.stats.endpoints import playercareerstats, playergamelog, commonallplayers
 from nba_api.live.nba.endpoints import scoreboard
-
 
 def live_game(request):
     try:
@@ -23,12 +22,15 @@ def get_all_teams(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
 
+
 def get_all_players(request):
     try:
-        all_players = players.get_active_players()
+        response = commonallplayers.CommonAllPlayers(is_only_current_season=1)
+        all_players = response.get_data_frames()[0].to_dict(orient='records')
         return JsonResponse(all_players, safe=False)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
 
 def get_player_stats(request, player_id):
     try:
