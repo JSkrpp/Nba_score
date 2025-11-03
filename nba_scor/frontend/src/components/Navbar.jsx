@@ -5,6 +5,7 @@ import logo from '../assets/logo.webp'
 import Teams from '../routes/Teams'
 import Players from '../routes/Players'
 import PlayerStats from '../routes/PlayerStats'
+import Leaders from '../routes/Leaders'
 
 function Home() {
   return (
@@ -22,10 +23,6 @@ function Live() {
 
 function Games() {
   return <h2>Games and boxscores</h2>
-}
-
-function Stats() {
-    return <h2>Player Leaders</h2>
 }
 
 function Standings() {
@@ -58,7 +55,7 @@ export default function Navbar() {
           <Route path="/players" element={<Players />} />
           <Route path="/players/:playerId" element={<PlayerStats />} />
           <Route path="/teams" element={<Teams />} />
-          <Route path="/leaders" element={<Stats />} />
+          <Route path="/leaders" element={<Leaders />} />
           <Route path="/standings" element={<Standings />} />
         </Routes>
       </main>
