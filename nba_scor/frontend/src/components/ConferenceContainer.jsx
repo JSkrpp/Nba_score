@@ -1,7 +1,9 @@
 import React from 'react'
 import './ConferenceContainer.css'
+import { useNavigate } from 'react-router-dom'
 
 export default function ConferenceContainer({ conference, standings }) {
+  const navigate = useNavigate()
   if (!standings) return null
 
   return (
@@ -22,7 +24,7 @@ export default function ConferenceContainer({ conference, standings }) {
             <div className="rank-col">
               <span className="rank-number">{team.rank}</span>
             </div>
-            <div className="team-col">
+            <div className="team-col" onClick={() => navigate(`/teams/${team.team_id}`)} style={{ cursor: 'pointer' }}>
               <span className="team-city">{team.team_city}</span>
               <span className="team-name-text">{team.team_name}</span>
             </div>

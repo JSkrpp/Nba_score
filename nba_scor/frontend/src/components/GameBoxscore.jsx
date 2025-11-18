@@ -1,8 +1,10 @@
-import React from 'react'
+import React, { use } from 'react'
 import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import './GameBoxscore.css'
 
 export default function GameBoxscore({ gameId }) {
+  const navigate = useNavigate()
   const [boxscore, setBoxscore] = React.useState(null)
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState(null)
@@ -140,11 +142,11 @@ export default function GameBoxscore({ gameId }) {
       {/* Score Summary */}
       <div className="score-summary">
         <div className="team-summary">
-          <h3>{away_team.team_city} {away_team.team_name}</h3>
+          <h3 className = "box-team-name" onClick={() => navigate(`/teams/${away_team.team_id}`)} style={{ cursor: 'pointer' }}>{away_team.team_city} {away_team.team_name}</h3>
           <div className="team-score-big">{away_team.score}</div>
         </div>
         <div className="team-summary">
-          <h3>{home_team.team_city} {home_team.team_name}</h3>
+          <h3 className = "box-team-name" onClick={() => navigate(`/teams/${home_team.team_id}`)} style={{ cursor: 'pointer' }}>{home_team.team_city} {home_team.team_name}</h3>
           <div className="team-score-big">{home_team.score}</div>
         </div>
       </div>

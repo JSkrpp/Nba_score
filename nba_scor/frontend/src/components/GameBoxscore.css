@@ -33,6 +33,16 @@
   margin-bottom: 2rem;
 }
 
+.box-team-name {
+  color: #000000;
+  cursor: pointer;
+}
+
+.box-team-name:hover {
+  color: #007BFF;
+  text-decoration: underline;
+}
+
 .team-summary {
   text-align: center;
   padding: 1.5rem;

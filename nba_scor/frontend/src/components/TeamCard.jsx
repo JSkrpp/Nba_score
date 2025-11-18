@@ -1,7 +1,9 @@
 import React from 'react'
 import './TeamCard.css'
+import { useNavigate } from 'react-router-dom'
 
-export default function TeamCard({ name, abbreviation }) {
+export default function TeamCard({ name, abbreviation, teamId }) {
+  const navigate = useNavigate()
   const logoAbbreviations = {
     'NOP': 'NO',    // New Orleans Pelicans
     'UTA': 'utah'   // Utah Jazz - lowercase for both CDNs
@@ -10,7 +12,7 @@ export default function TeamCard({ name, abbreviation }) {
   const logoUrl = `https://cdn.nba.com/logos/nba/${logoAbbr}/primary/L/logo.svg`
 
   return (
-    <div className="team-card">
+    <div className="teams-team-card" onClick={() => navigate(`/teams/${teamId}`)} style={{ cursor: 'pointer' }}>
       <img 
         src={logoUrl} 
         alt={`${name} logo`} 

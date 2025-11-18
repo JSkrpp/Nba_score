@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.http import JsonResponse, Http404
 from nba_api.stats.static import teams, players
 import pandas as pd
-from nba_api.stats.endpoints import playercareerstats, playergamelog, commonallplayers, playerdashboardbyyearoveryear, leagueleaders, leaguestandingsv3, boxscoretraditionalv2, scoreboardv2, PlayerGameLog
+from nba_api.stats.endpoints import playercareerstats, playergamelog, commonallplayers, playerdashboardbyyearoveryear, leagueleaders, leaguestandingsv3, boxscoretraditionalv2, scoreboardv2, PlayerGameLog, teamdashboardbygeneralsplits, commonteamroster, teamgamelogs
 from nba_api.live.nba.endpoints import scoreboard, boxscore
 from datetime import date
 
@@ -682,5 +682,205 @@ def get_games_by_date(request, date):
             games.append(game_obj)
 
         return JsonResponse(games, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+def get_team_stats(request, team_id):
+    try:
+        # Get league standings to find team record and rankings
+        standings = leaguestandingsv3.LeagueStandingsV3(
+            league_id='00',
+            season='2025-26',
+            season_type='Regular Season'
+        )
+        
+        standings_df = standings.get_data_frames()[0]
+        
+        # Find the team in standings
+        team_data = standings_df[standings_df['TeamID'] == int(team_id)]
+        
+        if team_data.empty:
+            return JsonResponse({'error': 'Team not found in standings'}, status=404)
+        
+        team_row = team_data.iloc[0]
+        
+        # Get conference and league rankings
+        conference = team_row['Conference']
+        
+        # Calculate conference rank
+        conf_teams = standings_df[standings_df['Conference'] == conference].copy()
+        conf_teams = conf_teams.sort_values('WinPCT', ascending=False)
+        conf_rank = conf_teams.index.tolist().index(team_row.name) + 1
+        
+        # Calculate league rank
+        league_teams = standings_df.copy()
+        league_teams = league_teams.sort_values('WinPCT', ascending=False)
+        league_rank = league_teams.index.tolist().index(team_row.name) + 1
+        
+        # Format response
+        team_stats = {
+            'team_id': int(team_id),
+            'team_name': team_row['TeamName'],
+            'team_city': team_row['TeamCity'],
+            'wins': int(team_row['WINS']),
+            'losses': int(team_row['LOSSES']),
+            'win_percentage': float(team_row['WinPCT']),
+            'conference': conference,
+            'conference_rank': conf_rank,
+            'league_rank': league_rank,
+            'home_record': team_row.get('HOME', 'N/A'),
+            'road_record': team_row.get('ROAD', 'N/A'),
+            'last_10': team_row.get('L10', 'N/A'),
+        }
+        
+        return JsonResponse(team_stats)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+def get_team_averages(request, team_id):
+    try:
+        # Get all teams' stats to calculate rankings
+        from nba_api.stats.endpoints import leaguedashteamstats
+        
+        # Get league-wide team stats
+        league_stats = leaguedashteamstats.LeagueDashTeamStats(
+            season='2025-26',
+            per_mode_detailed='PerGame',
+            season_type_all_star='Regular Season'
+        )
+        
+        league_df = league_stats.get_data_frames()[0]
+        
+        # Get team dashboard with general splits for current season
+        dashboard = teamdashboardbygeneralsplits.TeamDashboardByGeneralSplits(
+            team_id=team_id,
+            season='2025-26',
+            per_mode_detailed='PerGame',
+            season_type_all_star='Regular Season'
+        )
+        
+        # Get the overall team stats (first dataframe)
+        stats_df = dashboard.get_data_frames()[0]
+        
+        if stats_df.empty:
+            return JsonResponse({'error': 'No stats found for this team'}, status=404)
+        
+        # Get the first row (overall stats)
+        team_row = stats_df.iloc[0]
+        
+        # Calculate rankings for each stat
+        def get_rank(stat_column, ascending=False):
+            sorted_teams = league_df.sort_values(stat_column, ascending=ascending)
+            rank = sorted_teams[sorted_teams['TEAM_ID'] == int(team_id)].index[0] + 1
+            return int(rank)
+        
+        # Format response with per-game averages and rankings
+        team_averages = {
+            'team_id': int(team_id),
+            'games_played': int(team_row.get('GP', 0)),
+            'wins': int(team_row.get('W', 0)),
+            'losses': int(team_row.get('L', 0)),
+            'points': float(team_row.get('PTS', 0)),
+            'points_rank': get_rank('PTS'),
+            'field_goals_made': float(team_row.get('FGM', 0)),
+            'field_goals_attempted': float(team_row.get('FGA', 0)),
+            'field_goal_pct': float(team_row.get('FG_PCT', 0)),
+            'three_point_pct': float(team_row.get('FG3_PCT', 0)),
+            'free_throw_pct': float(team_row.get('FT_PCT', 0)),
+            'total_rebounds': float(team_row.get('REB', 0)),
+            'assists': float(team_row.get('AST', 0)),
+            'turnovers': float(team_row.get('TOV', 0)),
+            'steals': float(team_row.get('STL', 0)),
+            'blocks': float(team_row.get('BLK', 0)),
+        }
+        
+        return JsonResponse(team_averages)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+def get_team_roster(request, team_id):
+    try:
+        # Get team roster
+        roster = commonteamroster.CommonTeamRoster(
+            team_id=team_id,
+            season='2025-26'
+        )
+        
+        roster_df = roster.get_data_frames()[0]
+        
+        if roster_df.empty:
+            return JsonResponse({'error': 'No roster found for this team'}, status=404)
+        
+        # Format roster
+        roster_list = []
+        for _, player in roster_df.iterrows():
+            roster_list.append({
+                'player_id': int(player['PLAYER_ID']),
+                'player_name': player['PLAYER'],
+                'jersey_number': player.get('NUM', 'N/A'),
+                'position': player.get('POSITION', 'N/A'),
+                'height': player.get('HEIGHT', 'N/A'),
+                'weight': player.get('WEIGHT', 'N/A'),
+                'birth_date': player.get('BIRTH_DATE', 'N/A'),
+                'age': player.get('AGE', 'N/A'),
+            })
+        
+        return JsonResponse(roster_list, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+def get_team_game_log(request, team_id):
+    try:
+        # Get team game log using TeamGameLogs
+        game_log = teamgamelogs.TeamGameLogs(
+            team_id_nullable=team_id,
+            season_nullable='2025-26',
+            season_type_nullable='Regular Season'
+        )
+        
+        game_log_df = game_log.get_data_frames()[0]
+        
+        if game_log_df.empty:
+            return JsonResponse([], safe=False)
+        
+        # Sort by date descending
+        game_log_df = game_log_df.sort_values('GAME_ID', ascending=False)
+        
+        # Filter to only include fields that match player game log structure
+        filtered_games = []
+        for _, game in game_log_df.iterrows():
+    
+            game_id_str = str(game.get('GAME_ID', ''))
+            if game_id_str and game_id_str[0] == '1':
+                continue  # Skip preseason games (starting with '1')
+            
+            filtered_games.append({
+                'Game_ID': game.get('GAME_ID'),
+                'GAME_DATE': game.get('GAME_DATE'),
+                'MATCHUP': game.get('MATCHUP'),
+                'WL': game.get('WL'),
+                'MIN': game.get('MIN'),
+                'PTS': game.get('PTS'),
+                'REB': game.get('REB'),
+                'AST': game.get('AST'),
+                'STL': game.get('STL'),
+                'BLK': game.get('BLK'),
+                'FGM': game.get('FGM'),
+                'FGA': game.get('FGA'),
+                'FG_PCT': game.get('FG_PCT'),
+                'FG3M': game.get('FG3M'),
+                'FG3A': game.get('FG3A'),
+                'FG3_PCT': game.get('FG3_PCT'),
+                'FTM': game.get('FTM'),
+                'FTA': game.get('FTA'),
+                'FT_PCT': game.get('FT_PCT'),
+                'TOV': game.get('TOV')
+            })
+        
+        return JsonResponse(filtered_games, safe=False)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)

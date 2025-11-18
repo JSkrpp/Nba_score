@@ -49,9 +49,11 @@ export default function Teams() {
             key={team.abbreviation}
             name={team.full_name}
             abbreviation={team.abbreviation}
+            teamId={team.id}
           />
         ))}
       </div>
     </div>
   )
 }
+

@@ -58,9 +58,14 @@
   color: #666;
 }
 
-.team-name {
-  color: #1976d2;
+.player-team-name {
+  color: #000000;
   font-weight: 700;
+}
+
+.player-team-name:hover {
+  color: #007BFF;
+  text-decoration: underline;
 }
 
 .player-photo {

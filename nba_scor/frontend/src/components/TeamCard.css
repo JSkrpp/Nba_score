@@ -1,4 +1,4 @@
-.team-card {
+.teams-team-card {
     display: flex;
     align-items: center;
     gap: 2.5rem;
@@ -12,12 +12,11 @@
     transition: box-shadow 0.3s ease;
     font-size: larger;  
     font-style: italic;
-    height: 2.5rem;
-    /* Ensure text inside the card defaults to black, regardless of global :root/body color */
+    height: 5rem;
     color: #000;
 }
 
-.team-card::before {
+.teams-team-card::before {
     content: '';
     position: absolute;
     top: 0;
@@ -29,11 +28,11 @@
     z-index: -1;
 }
 
-.team-card:hover {
+.teams-team-card:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.team-card:hover::before {
+.teams-team-card:hover::before {
     width: 100%;
 }
 
@@ -49,7 +48,7 @@
     gap: 1.5rem;
 }
 
-.team-card .team-name {
+.teams-team-card .team-name {
     color: black;
     font-weight: 500;
 }

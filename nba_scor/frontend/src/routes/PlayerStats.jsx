@@ -116,14 +116,15 @@ export default function PlayerStats() {
       {teamInfo && teamInfo.team_abbreviation && (
 
         <div className="player-team">
-          <h3>Team: </h3>
-          <img 
+          <h3 >Team: </h3>
+          <img
+            onClick={() => navigate(`/teams/${teamInfo.team_id}`)} style={{ cursor: 'pointer' }}
             src={getTeamLogoUrl(teamInfo.team_abbreviation)} 
             alt={`${teamInfo.team_name} logo`}
             className="team-logo-small"
             onError={(e) => handleLogoError(e, teamInfo.team_abbreviation)}
           />
-          <span className="team-name">
+          <span className="player-team-name" onClick={() => navigate(`/teams/${teamInfo.team_id}`)} style={{ cursor: 'pointer' }}>
             {teamInfo.team_city} {teamInfo.team_name} ({teamInfo.team_abbreviation})
           </span>
         </div>

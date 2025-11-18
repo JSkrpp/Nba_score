@@ -10,6 +10,7 @@ import Standings from '../routes/Standings'
 import Live from '../routes/Live'
 import Game from '../routes/Game'
 import Games from '../routes/Games'
+import TeamPage from '../components/TeamPage'
 
 function Home() {
   return (
@@ -48,6 +49,7 @@ export default function Navbar() {
           <Route path="/players" element={<Players />} />
           <Route path="/players/:playerId" element={<PlayerStats />} />
           <Route path="/teams" element={<Teams />} />
+          <Route path="/teams/:teamId" element={<TeamPage />} />
           <Route path="/leaders" element={<Leaders />} />
           <Route path="/standings" element={<Standings />} />
         </Routes>

@@ -45,7 +45,6 @@ export default function Standings() {
       <div className="standings-content">
         <ConferenceContainer conference="Western" standings={westernStandings} />
         <ConferenceContainer conference="Eastern" standings={easternStandings} />
-        
       </div>
     </div>
   )
