@@ -13,6 +13,8 @@
     font-size: larger;  
     font-style: italic;
     height: 2.5rem;
+    /* Ensure text inside the card defaults to black, regardless of global :root/body color */
+    color: #000;
 }
 
 .team-card::before {
@@ -47,7 +49,8 @@
     gap: 1.5rem;
 }
 
-.team-name {
+.team-card .team-name {
+    color: black;
     font-weight: 500;
 }
 

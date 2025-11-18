@@ -6,6 +6,10 @@ import Teams from '../routes/Teams'
 import Players from '../routes/Players'
 import PlayerStats from '../routes/PlayerStats'
 import Leaders from '../routes/Leaders'
+import Standings from '../routes/Standings'
+import Live from '../routes/Live'
+import Game from '../routes/Game'
+import Games from '../routes/Games'
 
 function Home() {
   return (
@@ -14,20 +18,6 @@ function Home() {
     </div>
   )
 }
-
-function Live() {
-  return <h2>Live scores will appear here</h2>
-}
-
-/* Teams component moved to src/routes/Teams.jsx */
-
-function Games() {
-  return <h2>Games and boxscores</h2>
-}
-
-function Standings() {
-    return <h2>Team Standings</h2>
-}  
 
 export default function Navbar() {
   return (
@@ -40,6 +30,7 @@ export default function Navbar() {
         </div>
         <div className="navbar-links">
           <Link to="/live" className="nav-link">🔴 Live</Link>
+          <Link to="/games" className="nav-link">Games</Link>
           <Link to="/players" className="nav-link">Players</Link>
           <Link to="/teams" className="nav-link">Teams</Link>
           <Link to="/leaders" className="nav-link">Leaders</Link>
@@ -52,6 +43,8 @@ export default function Navbar() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/live" element={<Live />} />
+          <Route path="/games" element={<Games />} />
+          <Route path="/games/:gameId" element={<Game />} />
           <Route path="/players" element={<Players />} />
           <Route path="/players/:playerId" element={<PlayerStats />} />
           <Route path="/teams" element={<Teams />} />

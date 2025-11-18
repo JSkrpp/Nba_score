@@ -1,6 +1,7 @@
 import React from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import PlayerStatsCard from '../components/PlayerStatsCard'
+import GameByGame from '../components/GameByGame'
 import './PlayerStats.css'
 
 export default function PlayerStats() {
@@ -105,19 +106,13 @@ export default function PlayerStats() {
 
   return (
     <div className="player-stats-container">
-      <button 
-        onClick={() => navigate('/players')}
-        className="back-button"
-        aria-label="Back to players"
-      >
-        ← Back to Players
-      </button>
+      <h2>{playerName}</h2>
       {photoUrl && (
         <div className="player-photo-container">
           <img src={photoUrl} alt={playerName} className="player-photo" />
         </div>
       )}
-      <h2>{playerName}</h2>
+      
       {teamInfo && teamInfo.team_abbreviation && (
 
         <div className="player-team">
@@ -133,7 +128,10 @@ export default function PlayerStats() {
           </span>
         </div>
       )}
-      <PlayerStatsCard stats={currentStats} loading={statsLoading} error={statsError} />
+      <div className = "player-stats-section">
+        <PlayerStatsCard stats={currentStats} loading={statsLoading} error={statsError} />
+        <GameByGame playerId={playerId} />
+      </div>
     </div>
   )
 }

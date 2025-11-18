@@ -1,16 +1,74 @@
 from django.shortcuts import render
 from django.http import JsonResponse, Http404
-from .models import Player
 from nba_api.stats.static import teams, players
-from nba_api.stats.endpoints import playercareerstats, playergamelog, commonallplayers, playerdashboardbyyearoveryear, leagueleaders
-from nba_api.live.nba.endpoints import scoreboard
+import pandas as pd
+from nba_api.stats.endpoints import playercareerstats, playergamelog, commonallplayers, playerdashboardbyyearoveryear, leagueleaders, leaguestandingsv3, boxscoretraditionalv2, scoreboardv2, PlayerGameLog
+from nba_api.live.nba.endpoints import scoreboard, boxscore
+from datetime import date
+
+
+def get_current_season():
+    today = date.today()
+    year = today.year
+    month = today.month
+    if month >= 10:  # Season starts in October
+        return f"{year}-{str(year + 1)[-2:]}"
+    else:
+        return f"{year - 1}-{str(year)[-2:]}"
+    
+def get_player_game_log(request, player_id):
+    try:
+        season = get_current_season()
+
+        response = PlayerGameLog(
+            player_id=player_id,
+            season=season
+        )
+
+        gamelog = response.get_data_frames()[0].to_dict(orient='records')
+
+        return JsonResponse(gamelog, safe=False)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)      
+    
 
 def live_game(request):
     try:
+        # Get the lightweight scoreboard first
         scoreboard_data = scoreboard.ScoreBoard()
         games_json = scoreboard_data.get_dict()
         games = games_json['scoreboard']['games']
-        return JsonResponse(games, safe=False)
+        
+        # For games that are live (gameStatus == 2), fetch real-time boxscore data
+        enhanced_games = []
+        for game in games:
+            game_status = game.get('gameStatus', 1)
+            
+            # If game is live (status 2), get real-time scores from boxscore
+            if game_status == 2:
+                try:
+                    game_id = game.get('gameId')
+                    live_boxscore = boxscore.BoxScore(game_id=game_id)
+                    boxscore_data = live_boxscore.get_dict()
+                    
+                    # Extract real-time scores and update the game object
+                    box_game = boxscore_data.get('game', {})
+                    game['homeTeam']['score'] = box_game.get('homeTeam', {}).get('score', game['homeTeam'].get('score', 0))
+                    game['awayTeam']['score'] = box_game.get('awayTeam', {}).get('score', game['awayTeam'].get('score', 0))
+                    game['period'] = box_game.get('period', game.get('period', 0))
+                    game['gameClock'] = box_game.get('gameClock', game.get('gameClock', ''))
+                    
+                    # Also update period scores if available
+                    game['homeTeam']['periods'] = box_game.get('homeTeam', {}).get('periods', game['homeTeam'].get('periods', []))
+                    game['awayTeam']['periods'] = box_game.get('awayTeam', {}).get('periods', game['awayTeam'].get('periods', []))
+                except Exception as box_error:
+                    # If boxscore fetch fails, keep the scoreboard data
+                    pass
+            
+            enhanced_games.append(game)
+        
+        return JsonResponse(enhanced_games, safe=False)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
 
@@ -226,5 +284,403 @@ def get_assist_leaders(request):
             })
         
         return JsonResponse(leaders_list, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+    
+def get_blocks_leaders(request):
+    try:
+        # Get league leaders for assists per game
+        leaders = leagueleaders.LeagueLeaders(
+            league_id='00',
+            per_mode48='PerGame',
+            scope='S',
+            season='2025-26',
+            season_type_all_star='Regular Season',
+            stat_category_abbreviation='BLK'
+        )
+        
+        leaders_df = leaders.get_data_frames()[0]
+        
+        top_10 = leaders_df.head(10)
+        
+        # Format the response
+        leaders_list = []
+        for _, row in top_10.iterrows():
+            leaders_list.append({
+                'rank': int(row['RANK']),
+                'player_id': int(row['PLAYER_ID']),
+                'player_name': row['PLAYER'],
+                'team': row.get('TEAM_ABBREVIATION', row.get('TEAM', 'N/A')),
+                'games_played': int(row['GP']),
+                'blocks': float(row['BLK']),
+            })
+        
+        return JsonResponse(leaders_list, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)    
+    
+def get_steals_leaders(request):
+    try:
+        # Get league leaders for assists per game
+        leaders = leagueleaders.LeagueLeaders(
+            league_id='00',
+            per_mode48='PerGame',
+            scope='S',
+            season='2025-26',
+            season_type_all_star='Regular Season',
+            stat_category_abbreviation='STL'
+        )
+        
+        leaders_df = leaders.get_data_frames()[0]
+        
+        top_10 = leaders_df.head(10)
+        
+        # Format the response
+        leaders_list = []
+        for _, row in top_10.iterrows():
+            leaders_list.append({
+                'rank': int(row['RANK']),
+                'player_id': int(row['PLAYER_ID']),
+                'player_name': row['PLAYER'],
+                'team': row.get('TEAM_ABBREVIATION', row.get('TEAM', 'N/A')),
+                'games_played': int(row['GP']),
+                'steals': float(row['STL']),
+            })
+        
+        return JsonResponse(leaders_list, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)    
+    
+def get_fgm_leaders(request):
+    try:
+        leaders = leagueleaders.LeagueLeaders(
+            league_id='00',
+            per_mode48='PerGame',
+            scope='S',
+            season='2025-26',
+            season_type_all_star='Regular Season',
+            stat_category_abbreviation='FGM'
+        )
+        
+        leaders_df = leaders.get_data_frames()[0]
+        
+        top_10 = leaders_df.head(10)
+        
+        # Format the response
+        leaders_list = []
+        for _, row in top_10.iterrows():
+            leaders_list.append({
+                'rank': int(row['RANK']),
+                'player_id': int(row['PLAYER_ID']),
+                'player_name': row['PLAYER'],
+                'team': row.get('TEAM_ABBREVIATION', row.get('TEAM', 'N/A')),
+                'games_played': int(row['GP']),
+                'field_goals': float(row['FGM']),
+            })
+        
+        return JsonResponse(leaders_list, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400) 
+
+def get_league_standings(request):
+    try:
+        standings = leaguestandingsv3.LeagueStandingsV3(
+            league_id='00',
+            season='2025-26',
+            season_type='Regular Season'
+        )
+        
+        standings_df = standings.get_data_frames()[0]
+        
+        # Separate by conference
+        eastern_conf = standings_df[standings_df['Conference'] == 'East'].copy()
+        western_conf = standings_df[standings_df['Conference'] == 'West'].copy()
+        
+        # Sort by win percentage
+        eastern_conf = eastern_conf.sort_values('WinPCT', ascending=False)
+        western_conf = western_conf.sort_values('WinPCT', ascending=False)
+        
+        # Format Eastern Conference
+        eastern_standings = []
+        for idx, (_, row) in enumerate(eastern_conf.iterrows(), 1):
+            eastern_standings.append({
+                'rank': idx,
+                'team_id': int(row['TeamID']),
+                'team_name': row['TeamName'],
+                'team_city': row['TeamCity'],
+                'team_abbreviation': row.get('TeamSlug', 'N/A'),
+                'wins': int(row['WINS']),
+                'losses': int(row['LOSSES']),
+                'win_pct': float(row['WinPCT']),
+                'games_back': row.get('ConferenceGamesBack', '0'),
+                'conference': 'East',
+                'division': row.get('Division', 'N/A'),
+                'home_record': row.get('HOME', 'N/A'),
+                'road_record': row.get('ROAD', 'N/A'),
+                'last_10': row.get('L10', 'N/A'),
+                'streak': row.get('strCurrentStreak', 'N/A')
+            })
+        
+        # Format Western Conference
+        western_standings = []
+        for idx, (_, row) in enumerate(western_conf.iterrows(), 1):
+            western_standings.append({
+                'rank': idx,
+                'team_id': int(row['TeamID']),
+                'team_name': row['TeamName'],
+                'team_city': row['TeamCity'],
+                'team_abbreviation': row.get('TeamSlug', 'N/A'),
+                'wins': int(row['WINS']),
+                'losses': int(row['LOSSES']),
+                'win_pct': float(row['WinPCT']),
+                'games_back': row.get('ConferenceGamesBack', '0'),
+                'conference': 'West',
+                'division': row.get('Division', 'N/A'),
+                'home_record': row.get('HOME', 'N/A'),
+                'road_record': row.get('ROAD', 'N/A'),
+                'last_10': row.get('L10', 'N/A'),
+                'streak': row.get('strCurrentStreak', 'N/A')
+            })
+        
+        response_data = {
+            'eastern_conference': eastern_standings,
+            'western_conference': western_standings,
+            'season': '2025-26'
+        }
+        
+        return JsonResponse(response_data, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+def get_game_boxscore(request, game_id):
+    try:
+        # Get live boxscore data (works for live, finished, and recent games)
+        game_boxscore = boxscore.BoxScore(game_id=game_id)
+        boxscore_data = game_boxscore.get_dict()
+        
+        # Extract game info
+        game_info = boxscore_data.get('game', {})
+        
+        # Extract team stats
+        home_team = game_info.get('homeTeam', {})
+        away_team = game_info.get('awayTeam', {})
+        
+        # Format player stats for home team
+        home_players = []
+        for player in home_team.get('players', []):
+            stats = player.get('statistics', {})
+            home_players.append({
+                'player_id': player.get('personId'),
+                'name': player.get('name', ''),
+                'jersey_num': player.get('jerseyNum', ''),
+                'position': player.get('position', ''),
+                'starter': player.get('starter', '0') == '1',
+                'minutes': stats.get('minutes', '0'),
+                'points': stats.get('points', 0),
+                'rebounds': stats.get('reboundsTotal', 0),
+                'assists': stats.get('assists', 0),
+                'steals': stats.get('steals', 0),
+                'blocks': stats.get('blocks', 0),
+                'turnovers': stats.get('turnovers', 0),
+                'fouls': stats.get('foulsPersonal', 0),
+                'fg_made': stats.get('fieldGoalsMade', 0),
+                'fg_attempted': stats.get('fieldGoalsAttempted', 0),
+                'fg_percentage': stats.get('fieldGoalsPercentage', 0),
+                'three_pt_made': stats.get('threePointersMade', 0),
+                'three_pt_attempted': stats.get('threePointersAttempted', 0),
+                'three_pt_percentage': stats.get('threePointersPercentage', 0),
+                'ft_made': stats.get('freeThrowsMade', 0),
+                'ft_attempted': stats.get('freeThrowsAttempted', 0),
+                'ft_percentage': stats.get('freeThrowsPercentage', 0),
+                'plus_minus': stats.get('plusMinusPoints', 0)
+            })
+        
+        # Format player stats for away team
+        away_players = []
+        for player in away_team.get('players', []):
+            stats = player.get('statistics', {})
+            away_players.append({
+                'player_id': player.get('personId'),
+                'name': player.get('name', ''),
+                'jersey_num': player.get('jerseyNum', ''),
+                'position': player.get('position', ''),
+                'starter': player.get('starter', '0') == '1',
+                'minutes': stats.get('minutes', '0'),
+                'points': stats.get('points', 0),
+                'rebounds': stats.get('reboundsTotal', 0),
+                'assists': stats.get('assists', 0),
+                'steals': stats.get('steals', 0),
+                'blocks': stats.get('blocks', 0),
+                'turnovers': stats.get('turnovers', 0),
+                'fouls': stats.get('foulsPersonal', 0),
+                'fg_made': stats.get('fieldGoalsMade', 0),
+                'fg_attempted': stats.get('fieldGoalsAttempted', 0),
+                'fg_percentage': stats.get('fieldGoalsPercentage', 0),
+                'three_pt_made': stats.get('threePointersMade', 0),
+                'three_pt_attempted': stats.get('threePointersAttempted', 0),
+                'three_pt_percentage': stats.get('threePointersPercentage', 0),
+                'ft_made': stats.get('freeThrowsMade', 0),
+                'ft_attempted': stats.get('freeThrowsAttempted', 0),
+                'ft_percentage': stats.get('freeThrowsPercentage', 0),
+                'plus_minus': stats.get('plusMinusPoints', 0)
+            })
+        
+        # Format team statistics
+        home_team_stats = home_team.get('statistics', {})
+        away_team_stats = away_team.get('statistics', {})
+        
+        response_data = {
+            'game_id': game_id,
+            'game_status': game_info.get('gameStatus'),
+            'game_status_text': game_info.get('gameStatusText', ''),
+            'period': game_info.get('period', 0),
+            'game_clock': game_info.get('gameClock', ''),
+            'home_team': {
+                'team_id': home_team.get('teamId'),
+                'team_name': home_team.get('teamName', ''),
+                'team_city': home_team.get('teamCity', ''),
+                'team_tricode': home_team.get('teamTricode', ''),
+                'score': home_team.get('score', 0),
+                'periods': home_team.get('periods', []),
+                'statistics': {
+                    'points': home_team_stats.get('points', 0),
+                    'fg_made': home_team_stats.get('fieldGoalsMade', 0),
+                    'fg_attempted': home_team_stats.get('fieldGoalsAttempted', 0),
+                    'fg_percentage': home_team_stats.get('fieldGoalsPercentage', 0),
+                    'three_pt_made': home_team_stats.get('threePointersMade', 0),
+                    'three_pt_attempted': home_team_stats.get('threePointersAttempted', 0),
+                    'three_pt_percentage': home_team_stats.get('threePointersPercentage', 0),
+                    'ft_made': home_team_stats.get('freeThrowsMade', 0),
+                    'ft_attempted': home_team_stats.get('freeThrowsAttempted', 0),
+                    'ft_percentage': home_team_stats.get('freeThrowsPercentage', 0),
+                    'rebounds_total': home_team_stats.get('reboundsTotal', 0),
+                    'rebounds_offensive': home_team_stats.get('reboundsOffensive', 0),
+                    'rebounds_defensive': home_team_stats.get('reboundsDefensive', 0),
+                    'assists': home_team_stats.get('assists', 0),
+                    'steals': home_team_stats.get('steals', 0),
+                    'blocks': home_team_stats.get('blocks', 0),
+                    'turnovers': home_team_stats.get('turnovers', 0),
+                    'fouls': home_team_stats.get('foulsPersonal', 0)
+                },
+                'players': home_players
+            },
+            'away_team': {
+                'team_id': away_team.get('teamId'),
+                'team_name': away_team.get('teamName', ''),
+                'team_city': away_team.get('teamCity', ''),
+                'team_tricode': away_team.get('teamTricode', ''),
+                'score': away_team.get('score', 0),
+                'periods': away_team.get('periods', []),
+                'statistics': {
+                    'points': away_team_stats.get('points', 0),
+                    'fg_made': away_team_stats.get('fieldGoalsMade', 0),
+                    'fg_attempted': away_team_stats.get('fieldGoalsAttempted', 0),
+                    'fg_percentage': away_team_stats.get('fieldGoalsPercentage', 0),
+                    'three_pt_made': away_team_stats.get('threePointersMade', 0),
+                    'three_pt_attempted': away_team_stats.get('threePointersAttempted', 0),
+                    'three_pt_percentage': away_team_stats.get('threePointersPercentage', 0),
+                    'ft_made': away_team_stats.get('freeThrowsMade', 0),
+                    'ft_attempted': away_team_stats.get('freeThrowsAttempted', 0),
+                    'ft_percentage': away_team_stats.get('freeThrowsPercentage', 0),
+                    'rebounds_total': away_team_stats.get('reboundsTotal', 0),
+                    'rebounds_offensive': away_team_stats.get('reboundsOffensive', 0),
+                    'rebounds_defensive': away_team_stats.get('reboundsDefensive', 0),
+                    'assists': away_team_stats.get('assists', 0),
+                    'steals': away_team_stats.get('steals', 0),
+                    'blocks': away_team_stats.get('blocks', 0),
+                    'turnovers': away_team_stats.get('turnovers', 0),
+                    'fouls': away_team_stats.get('foulsPersonal', 0)
+                },
+                'players': away_players
+            }
+        }
+        
+        return JsonResponse(response_data)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+def get_games_by_date(request, date):
+    try:
+        # Date should be in format YYYY-MM-DD (e.g., "2025-11-15")
+        from datetime import datetime
+        
+        # Validate date format
+        try:
+            date_obj = datetime.strptime(date, '%Y-%m-%d')
+        except ValueError:
+            return JsonResponse({'error': 'Invalid date format. Use YYYY-MM-DD'}, status=400)
+        
+        # Convert to MM/DD/YYYY format for the stats API
+        formatted_date = date_obj.strftime('%m/%d/%Y')
+        
+        # Use the stats API ScoreboardV2 which accepts a game_date parameter
+        scoreboard_data = scoreboardv2.ScoreboardV2(game_date=formatted_date)
+
+        games_df = scoreboard_data.get_data_frames()[0]  # GameHeader dataframe
+
+        if games_df.empty:
+            return JsonResponse([], safe=False)
+
+        teams_list = teams.get_teams()
+        teams_by_id = {int(t['id']): t for t in teams_list}
+
+        # Format the response to match the minimal structure needed by the frontend
+        games = []
+        for _, game_row in games_df.iterrows():
+            game_id = str(game_row['GAME_ID'])
+
+            # Lookup team metadata
+            home_id = int(game_row['HOME_TEAM_ID'])
+            away_id = int(game_row['VISITOR_TEAM_ID'])
+            home_meta = teams_by_id.get(home_id, {})
+            away_meta = teams_by_id.get(away_id, {})
+
+            # Team tricodes from static metadata
+            home_tricode = home_meta.get('abbreviation', '')
+            away_tricode = away_meta.get('abbreviation', '')
+            
+            # Special cases: adjust team codes to match NBA.com conventions
+            if home_tricode == 'UTA':
+                home_tricode = 'UTAH'
+            elif home_tricode == 'NOP':
+                home_tricode = 'NO'
+            
+            if away_tricode == 'UTA':
+                away_tricode = 'UTAH'
+            elif away_tricode == 'NOP':
+                away_tricode = 'NO'
+
+            # Get scores from boxscore for finished games
+            home_score = 0
+            away_score = 0
+            try:
+                bs = boxscore.BoxScore(game_id=game_id)
+                bs_data = bs.get_dict()
+                game_data = bs_data.get('game', {})
+                home_score = game_data.get('homeTeam', {}).get('score', 0)
+                away_score = game_data.get('awayTeam', {}).get('score', 0)
+            except Exception:
+                pass  # Game not available in boxscore, keep scores at 0
+
+            game_obj = {
+                'gameId': game_id,
+
+                'homeTeam': {
+                    'teamId': home_id,
+                    'teamTricode': home_tricode,
+                    'score': home_score,
+                },
+                'awayTeam': {
+                    'teamId': away_id,
+                    'teamTricode': away_tricode,
+                    'score': away_score,
+                }
+            }
+            
+            games.append(game_obj)
+
+        return JsonResponse(games, safe=False)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)

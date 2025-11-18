@@ -15,6 +15,7 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 2rem;
+  /* Align by content; equal heights will be maintained via single-line rows */
   align-items: start;
 }
 
