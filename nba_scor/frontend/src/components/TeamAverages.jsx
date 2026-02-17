@@ -11,32 +11,26 @@ export default function TeamAverages({ averages }) {
         <div className="average-stat-item">
           <div className="average-stat-value">{averages.points.toFixed(1)}</div>
           <div className="average-stat-label">Points</div>
-          <div className="average-stat-rank">#{averages.points_rank} in NBA</div>
         </div>
         <div className="average-stat-item">
           <div className="average-stat-value">{averages.total_rebounds.toFixed(1)}</div>
           <div className="average-stat-label">Rebounds</div>
-          <div className="average-stat-rank">#{averages.rebounds_rank} in NBA</div>
         </div>
         <div className="average-stat-item">
           <div className="average-stat-value">{averages.assists.toFixed(1)}</div>
           <div className="average-stat-label">Assists</div>
-          <div className="average-stat-rank">#{averages.assists_rank} in NBA</div>
         </div>
         <div className="average-stat-item">
           <div className="average-stat-value">{averages.steals.toFixed(1)}</div>
           <div className="average-stat-label">Steals</div>
-          <div className="average-stat-rank">#{averages.steals_rank} in NBA</div>
         </div>
         <div className="average-stat-item">
           <div className="average-stat-value">{averages.blocks.toFixed(1)}</div>
           <div className="average-stat-label">Blocks</div>
-          <div className="average-stat-rank">#{averages.blocks_rank} in NBA</div>
         </div>
         <div className="average-stat-item">
           <div className="average-stat-value">{averages.turnovers.toFixed(1)}</div>
           <div className="average-stat-label">Turnovers</div>
-          <div className="average-stat-rank">#{averages.turnovers_rank} in NBA</div>
         </div>
       </div>
       
@@ -46,17 +40,14 @@ export default function TeamAverages({ averages }) {
           <div className="shooting-stat-item">
             <div className="shooting-stat-value">{(averages.field_goal_pct * 100).toFixed(1)}%</div>
             <div className="shooting-stat-label">FG%</div>
-            <div className="shooting-stat-rank">#{averages.field_goal_pct_rank} in NBA</div>
           </div>
           <div className="shooting-stat-item">
             <div className="shooting-stat-value">{(averages.three_point_pct * 100).toFixed(1)}%</div>
             <div className="shooting-stat-label">3P%</div>
-            <div className="shooting-stat-rank">#{averages.three_point_pct_rank} in NBA</div>
           </div>
           <div className="shooting-stat-item">
             <div className="shooting-stat-value">{(averages.free_throw_pct * 100).toFixed(1)}%</div>
             <div className="shooting-stat-label">FT%</div>
-            <div className="shooting-stat-rank">#{averages.free_throw_pct_rank} in NBA</div>
           </div>
         </div>
       </div>

@@ -1,7 +1,15 @@
 from django.shortcuts import render
-from django.http import JsonResponse, Http404
+from django.http import JsonResponse, Http404, HttpResponse
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.authtoken.models import Token
+from django.contrib.auth import authenticate
+from .serializers import UserSerializer
+from .models import FavoritePlayer, FavoriteTeam
 from nba_api.stats.static import teams, players
 import pandas as pd
+import csv
 from nba_api.stats.endpoints import playercareerstats, playergamelog, commonallplayers, playerdashboardbyyearoveryear, leagueleaders, leaguestandingsv3, boxscoretraditionalv2, scoreboardv2, PlayerGameLog, teamdashboardbygeneralsplits, commonteamroster, teamgamelogs
 from nba_api.live.nba.endpoints import scoreboard, boxscore
 from datetime import date
@@ -28,6 +36,42 @@ def get_player_game_log(request, player_id):
         gamelog = response.get_data_frames()[0].to_dict(orient='records')
 
         return JsonResponse(gamelog, safe=False)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+def export_player_game_log_csv(request, player_id):
+    try:
+        season = get_current_season()
+
+        response = PlayerGameLog(
+            player_id=player_id,
+            season=season
+        )
+
+        gamelog_df = response.get_data_frames()[0]
+        
+        # Get player name for filename
+        player_list = players.get_players()
+        player = next((p for p in player_list if p['id'] == int(player_id)), None)
+        player_name = player['full_name'].replace(' ', '_') if player else f'Player_{player_id}'
+        
+        # Create the HttpResponse object with CSV header
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="{player_name}_gamelog_{season}.csv"'
+        
+        # Write CSV data
+        writer = csv.writer(response)
+        
+        # Write header
+        writer.writerow(gamelog_df.columns.tolist())
+        
+        # Write data rows
+        for _, row in gamelog_df.iterrows():
+            writer.writerow(row.tolist())
+        
+        return response
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)      
@@ -58,12 +102,10 @@ def live_game(request):
                     game['awayTeam']['score'] = box_game.get('awayTeam', {}).get('score', game['awayTeam'].get('score', 0))
                     game['period'] = box_game.get('period', game.get('period', 0))
                     game['gameClock'] = box_game.get('gameClock', game.get('gameClock', ''))
-                    
-                    # Also update period scores if available
                     game['homeTeam']['periods'] = box_game.get('homeTeam', {}).get('periods', game['homeTeam'].get('periods', []))
                     game['awayTeam']['periods'] = box_game.get('awayTeam', {}).get('periods', game['awayTeam'].get('periods', []))
                 except Exception as box_error:
-                    # If boxscore fetch fails, keep the scoreboard data
+                   
                     pass
             
             enhanced_games.append(game)
@@ -71,6 +113,116 @@ def live_game(request):
         return JsonResponse(enhanced_games, safe=False)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def register_user(request):
+    serializer = UserSerializer(data=request.data)
+    if serializer.is_valid():
+        user = serializer.save()
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({
+            'token': token.key,
+            'user_id': user.id,
+            'username': user.username
+        }, status=201)
+    return Response(serializer.errors, status=400)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def login_user(request):
+    username = request.data.get('username')
+    password = request.data.get('password')
+    user = authenticate(username=username, password=password)
+    if user:
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({
+            'token': token.key,
+            'user_id': user.id,
+            'username': user.username
+        })
+    else:
+        return Response({'error': 'Invalid credentials'}, status=400)
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def handle_favorite_player(request, player_id):
+    user = request.user
+    
+    if request.method == 'GET':
+        is_favorite = FavoritePlayer.objects.filter(user=user, player_id=player_id).exists()
+        return Response({'is_favorite': is_favorite})
+        
+    elif request.method == 'POST':
+        favorite = FavoritePlayer.objects.filter(user=user, player_id=player_id).first()
+        if favorite:
+            favorite.delete()
+            return Response({'is_favorite': False})
+        else:
+            player_name = request.data.get('player_name', 'Unknown Player')
+            FavoritePlayer.objects.create(user=user, player_id=player_id, player_name=player_name)
+            return Response({'is_favorite': True})
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def handle_favorite_team(request, team_id):
+    user = request.user
+    
+    if request.method == 'GET':
+        is_favorite = FavoriteTeam.objects.filter(user=user, team_id=team_id).exists()
+        return Response({'is_favorite': is_favorite})
+        
+    elif request.method == 'POST':
+        favorite = FavoriteTeam.objects.filter(user=user, team_id=team_id).first()
+        if favorite:
+            favorite.delete()
+            return Response({'is_favorite': False})
+        else:
+            team_name = request.data.get('team_name', 'Unknown Team')
+            team_abbreviation = request.data.get('team_abbreviation', 'N/A')
+            FavoriteTeam.objects.create(
+                user=user, 
+                team_id=team_id, 
+                team_name=team_name,
+                team_abbreviation=team_abbreviation
+            )
+            return Response({'is_favorite': True})
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_favorites(request):
+    user = request.user
+    
+    favorite_players = FavoritePlayer.objects.filter(user=user)
+    favorite_teams = FavoriteTeam.objects.filter(user=user)
+    
+    players_data = []
+    for p in favorite_players:
+        # Split name for PlayerCard
+        name_parts = p.player_name.split(' ', 1)
+        first_name = name_parts[0]
+        last_name = name_parts[1] if len(name_parts) > 1 else ''
+        
+        players_data.append({
+            'id': p.player_id,
+            'firstName': first_name,
+            'lastName': last_name,
+            'fullName': p.player_name
+        })
+        
+    teams_data = []
+    for t in favorite_teams:
+        teams_data.append({
+            'id': t.team_id,
+            'name': t.team_name,
+            'abbreviation': t.team_abbreviation
+        })
+        
+    return Response({
+        'players': players_data,
+        'teams': teams_data
+    })
+
 
 
 def get_all_teams(request):
@@ -90,7 +242,7 @@ def get_all_players(request):
         return JsonResponse({'error': str(e)}, status=400)
 
 
-def get_player_stats(request, player_id):
+def get_player_info(request, player_id):
     try:
         career_stats = playercareerstats.PlayerCareerStats(player_id=player_id)
         stats_dict = career_stats.get_dict()
@@ -171,7 +323,6 @@ def get_player_current_stats(request, player_id):
         # Get the current season stats
         season_stats = current_season_data.iloc[0]
         
-        # Extract basic stats
         basic_stats = {
             'points': float(season_stats.get('PTS', 0)),
             'rebounds': float(season_stats.get('REB', 0)),
@@ -448,7 +599,7 @@ def get_league_standings(request):
             'season': '2025-26'
         }
         
-        return JsonResponse(response_data, safe=False)
+        return JsonResponse(response_data)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
 
@@ -882,5 +1033,46 @@ def get_team_game_log(request, team_id):
             })
         
         return JsonResponse(filtered_games, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+def export_team_game_log_csv(request, team_id):
+    try:
+        # Get team game log using TeamGameLogs
+        game_log = teamgamelogs.TeamGameLogs(
+            team_id_nullable=team_id,
+            season_nullable='2025-26',
+            season_type_nullable='Regular Season'
+        )
+        
+        game_log_df = game_log.get_data_frames()[0]
+        
+        if game_log_df.empty:
+            return JsonResponse({'error': 'No game log data found'}, status=404)
+        
+        # Sort by date descending
+        game_log_df = game_log_df.sort_values('GAME_ID', ascending=False)
+        
+        # Filter out preseason games
+        game_log_df = game_log_df[~game_log_df['GAME_ID'].astype(str).str.startswith('1')]
+        
+        # Get team name for filename
+        team_list = teams.get_teams()
+        team = next((t for t in team_list if t['id'] == int(team_id)), None)
+        team_name = team['full_name'].replace(' ', '_') if team else f'Team_{team_id}'
+        
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="{team_name}_gamelog_2025-26.csv"'
+        
+        writer = csv.writer(response)
+        
+        writer.writerow(game_log_df.columns.tolist())
+        
+        for _, row in game_log_df.iterrows():
+            writer.writerow(row.tolist())
+        
+        return response
+
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)

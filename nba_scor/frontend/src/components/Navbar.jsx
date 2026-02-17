@@ -1,6 +1,7 @@
 import React from 'react'
 import './Navbar.css'
 import { Link, Routes, Route } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import logo from '../assets/logo.webp'
 import Teams from '../routes/Teams'
 import Players from '../routes/Players'
@@ -11,6 +12,9 @@ import Live from '../routes/Live'
 import Game from '../routes/Game'
 import Games from '../routes/Games'
 import TeamPage from '../components/TeamPage'
+import Login from '../routes/Login'
+import Register from '../routes/Register'
+import Favorites from '../routes/Favorites'
 
 function Home() {
   return (
@@ -21,6 +25,8 @@ function Home() {
 }
 
 export default function Navbar() {
+  const { user, logout } = useAuth()
+
   return (
     <>
       <nav className="navbar">
@@ -38,6 +44,17 @@ export default function Navbar() {
           <Link to="/standings" className="nav-link">Standings</Link>
         </div>
         <div className="navbar-spacer"></div>
+        <div className="navbar-auth">
+          {user ? (
+            <div className="auth-user-menu">
+              <Link to="/favorites" className="nav-link">My Favorites</Link>
+              <span className="username">{user.username}</span>
+              <button onClick={logout} className="nav-link logout-btn">Logout</button>
+            </div>
+          ) : (
+            <Link to="/login" className="nav-link">Login</Link>
+          )}
+        </div>
       </nav>
 
       <main className="main-content">
@@ -52,6 +69,9 @@ export default function Navbar() {
           <Route path="/teams/:teamId" element={<TeamPage />} />
           <Route path="/leaders" element={<Leaders />} />
           <Route path="/standings" element={<Standings />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/favorites" element={<Favorites />} />
         </Routes>
       </main>
     </>

@@ -7,6 +7,28 @@
     padding: 20px;
 }
 
+.team-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.favorite-btn {
+    background: none;
+    border: none;
+    font-size: 3rem;
+    color: #ffd700;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: transform 0.2s;
+}
+  
+.favorite-btn:hover {
+    transform: scale(1.1);
+}
+
 .team-stats-row{
     display: flex;
     flex-direction: row;

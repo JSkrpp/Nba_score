@@ -11,6 +11,26 @@
   font-size: 1.5rem;
 }
 
+.export-csv-btn {
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+.export-csv-btn:hover {
+  background-color: #1565c0;
+}
+
+.export-csv-btn:active {
+  background-color: #0d47a1;
+}
+
 .gamelog-table-container {
   overflow-x: auto;
   overflow-y: auto;

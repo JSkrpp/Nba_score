@@ -3,7 +3,8 @@
 .rebound-leaders-container,
 .assist-leaders-container,
 .blocks-leaders-container,
-.steals-leaders-container {
+.steals-leaders-container,
+.field-goals-leaders-container {
   margin: 0;
   padding: 0;
 }
@@ -12,11 +13,13 @@
 .rebound-leaders-container h3,
 .assist-leaders-container h3,
 .blocks-leaders-container h3,
-.steals-leaders-container h3 {
+.steals-leaders-container h3,
+.field-goals-leaders-container h3 {
   margin: 0 0 1.5rem 0;
   color: #333;
   font-size: 1.5rem;
 }
+
 
 .leaders-table {
   background: white;
@@ -55,7 +58,8 @@
 .rebounds-highlight,
 .assists-highlight,
 .blocks-highlight,
-.steals-highlight {
+.steals-highlight,
+.field-goals-highlight {
   color: #1976d2;
   font-weight: bold;
   font-size: 1.1rem;

@@ -49,30 +49,39 @@ export default function GameByGame({ playerId }) {
   if (error) return <div className="gamelog-error">Error loading game log: {error}</div>
   if (!gameLog || gameLog.length === 0) return <div className="gamelog-empty">No games found</div>
 
+  const handleExportCSV = () => {
+    window.location.href = `/api/players/${playerId}/gamelog/export/`
+  }
+
   return (
     <div className="game-by-game">
-      <h3>Game by Game Log</h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h3>Game by Game Log</h3>
+        <button onClick={handleExportCSV} className="export-csv-btn">
+          Export to CSV
+        </button>
+      </div>
       <div className="gamelog-table-container">
         <table className="gamelog-table">
           <thead>
             <tr>
-              <th>Date</th>
-              <th>Matchup</th>
-              <th>WL</th>
-              <th>MIN</th>
-              <th>PTS</th>
-              <th>REB</th>
-              <th>AST</th>
-              <th>STL</th>
-              <th>BLK</th>
-              <th>FG</th>
-              <th>FG%</th>
-              <th>3PT</th>
-              <th>3P%</th>
-              <th>FT</th>
-              <th>FT%</th>
-              <th>TO</th>
-              <th>+/-</th>
+              <th title="Date">Date</th>
+              <th title="Matchup">Matchup</th>
+              <th title="Win/Loss">WL</th>
+              <th title="Minutes Played">MIN</th>
+              <th title="Points">PTS</th>
+              <th title="Rebounds">REB</th>
+              <th title="Assists">AST</th>
+              <th title="Steals">STL</th>
+              <th title="Blocks">BLK</th>
+              <th title="Field Goals Made/Attempted">FG</th>
+              <th title="Field Goal Percentage">FG%</th>
+              <th title="3-Point Field Goals Made/Attempted">3PT</th>
+              <th title="3-Point Field Goal Percentage">3P%</th>
+              <th title="Free Throws Made/Attempted">FT</th>
+              <th title="Free Throw Percentage">FT%</th>
+              <th title="Turnovers">TO</th>
+              <th title="Plus/Minus">+/-</th>
             </tr>
           </thead>
           <tbody>

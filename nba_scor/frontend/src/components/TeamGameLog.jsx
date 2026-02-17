@@ -2,7 +2,7 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import './TeamGameLog.css'
 
-export default function TeamGameLog({ gameLog }) {
+export default function TeamGameLog({ gameLog, teamId }) {
   const navigate = useNavigate()
 
   const formatDate = (dateStr) => {
@@ -22,32 +22,41 @@ export default function TeamGameLog({ gameLog }) {
     }
   }
 
+  const handleExportCSV = () => {
+    window.location.href = `/api/teams/${teamId}/gamelog/export/`
+  }
+
   if (!gameLog || gameLog.length === 0) {
     return <div className="team-gamelog-empty">No games found</div>
   }
 
   return (
     <div className="team-game-log">
-      <h3>Game Log</h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h3>Game Log</h3>
+        <button onClick={handleExportCSV} className="export-csv-btn">
+          Export to CSV
+        </button>
+      </div>
       <div className="team-gamelog-table-container">
         <table className="team-gamelog-table">
           <thead>
             <tr>
-              <th>Date</th>
-              <th>Matchup</th>
-              <th>WL</th>
-              <th>PTS</th>
-              <th>REB</th>
-              <th>AST</th>
-              <th>STL</th>
-              <th>BLK</th>
-              <th>FG</th>
-              <th>FG%</th>
-              <th>3PT</th>
-              <th>3P%</th>
-              <th>FT</th>
-              <th>FT%</th>
-              <th>TO</th>
+              <th title="Date">Date</th>
+              <th title="Matchup">Matchup</th>
+              <th title="Win/Loss">WL</th>
+              <th title="Points">PTS</th>
+              <th title="Rebounds">REB</th>
+              <th title="Assists">AST</th>
+              <th title="Steals">STL</th>
+              <th title="Blocks">BLK</th>
+              <th title="Field Goals Made/Attempted">FG</th>
+              <th title="Field Goal Percentage">FG%</th>
+              <th title="3-Point Field Goals Made/Attempted">3PT</th>
+              <th title="3-Point Field Goal Percentage">3P%</th>
+              <th title="Free Throws Made/Attempted">FT</th>
+              <th title="Free Throw Percentage">FT%</th>
+              <th title="Turnovers">TO</th>
             </tr>
           </thead>
           <tbody>

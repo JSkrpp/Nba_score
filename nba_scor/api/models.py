@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 # Create your models here.
 class Team(models.Model):
@@ -24,15 +25,23 @@ class Player(models.Model):
     def __str__(self):
         return self.full_name
 
+# Add this to api/models.py
+class FavoriteTeam(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favorite_teams')
+    team_id = models.IntegerField()
+    team_name = models.CharField(max_length=100)
+    team_abbreviation = models.CharField(max_length=10)
+    created_at = models.DateTimeField(auto_now_add=True)
 
-class Game(models.Model):
-    nba_id = models.IntegerField(unique=True)
-    date = models.DateTimeField()
-    home_team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='home_games')
-    away_team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='away_games')
-    home_score = models.IntegerField(default=0)
-    away_score = models.IntegerField(default=0)
-    is_live = models.BooleanField(default=False)
+    class Meta:
+        unique_together = ('user', 'team_id')
 
-    def __str__(self):
-        return f"{self.away_team} at {self.home_team} ({self.date.date()})"
+class FavoritePlayer(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favorite_players')
+    player_id = models.IntegerField()
+    player_name = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'player_id')
+

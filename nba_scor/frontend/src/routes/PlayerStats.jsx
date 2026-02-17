@@ -1,5 +1,6 @@
 import React from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import PlayerStatsCard from '../components/PlayerStatsCard'
 import GameByGame from '../components/GameByGame'
 import './PlayerStats.css'
@@ -7,6 +8,7 @@ import './PlayerStats.css'
 export default function PlayerStats() {
   const { playerId } = useParams()
   const navigate = useNavigate()
+  const { user, token } = useAuth()
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState(null)
   const [playerName, setPlayerName] = React.useState('')
@@ -15,7 +17,7 @@ export default function PlayerStats() {
   const [currentStats, setCurrentStats] = React.useState(null)
   const [statsLoading, setStatsLoading] = React.useState(true)
   const [statsError, setStatsError] = React.useState(null)
-
+  const [isFavorite, setIsFavorite] = React.useState(false)
 
   const getTeamLogoUrl = (abbreviation) => { // special abbreviation cases
     const logoAbbreviations = {
@@ -79,7 +81,7 @@ export default function PlayerStats() {
   React.useEffect(() => {
     let mounted = true
     setStatsLoading(true)
-    fetch(`/api/players/${playerId}/current/`)
+    fetch(`/api/players/${playerId}/averages/`)
       .then((res) => {
         if (!res.ok) throw new Error(res.statusText || 'Network error')
         return res.json()
@@ -101,12 +103,67 @@ export default function PlayerStats() {
     }
   }, [playerId])
 
+  // Check favorite status
+  React.useEffect(() => {
+    if (!user || !token) return
+
+    fetch(`http://127.0.0.1:8000/api/players/${playerId}/favorite/`, {
+      headers: {
+        'Authorization': `Token ${token}`
+      }
+    })
+    .then(res => {
+      if (res.ok) return res.json()
+      throw new Error('Failed to fetch favorite status')
+    })
+    .then(data => {
+      setIsFavorite(data.is_favorite)
+    })
+    .catch(err => console.error('Error checking favorite:', err))
+  }, [playerId, user, token])
+
+  const toggleFavorite = async () => {
+    if (!user) {
+      navigate('/login')
+      return
+    }
+
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/api/players/${playerId}/favorite/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Token ${token}`
+        },
+        body: JSON.stringify({ player_name: playerName })
+      })
+      
+      if (res.ok) {
+        const data = await res.json()
+        setIsFavorite(data.is_favorite)
+      }
+    } catch (err) {
+      console.error('Error toggling favorite:', err)
+    }
+  }
+
   if (loading) return <div>Loading player...</div>
   if (error) return <div>Error loading player: {error}</div>
 
   return (
     <div className="player-stats-container">
-      <h2>{playerName}</h2>
+      <div className="player-header">
+        <h2>{playerName}</h2>
+        {user && (
+          <button 
+            onClick={toggleFavorite}
+            className="favorite-btn"
+            title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          >
+            {isFavorite ? '★' : '☆'}
+          </button>
+        )}
+      </div>
       {photoUrl && (
         <div className="player-photo-container">
           <img src={photoUrl} alt={playerName} className="player-photo" />

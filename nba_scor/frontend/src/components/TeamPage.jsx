@@ -1,5 +1,6 @@
 import React from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import TeamOverview from './TeamOverview'
 import TeamAverages from './TeamAverages'
 import TeamRoster from './TeamRoster'
@@ -8,6 +9,8 @@ import './TeamPage.css'
 
 export default function TeamPage() {
   const { teamId } = useParams()
+  const navigate = useNavigate()
+  const { user, token } = useAuth()
   const [team, setTeam] = React.useState(null)
   const [teamStats, setTeamStats] = React.useState(null)
   const [teamAverages, setTeamAverages] = React.useState(null)
@@ -15,6 +18,51 @@ export default function TeamPage() {
   const [teamGameLog, setTeamGameLog] = React.useState(null)
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState(null)
+  const [isFavorite, setIsFavorite] = React.useState(false)
+
+  React.useEffect(() => {
+    if (user && token && teamId) {
+      fetch(`/api/teams/${teamId}/favorite/`, {
+        headers: {
+          'Authorization': `Token ${token}`
+        }
+      })
+        .then(res => {
+          if (res.ok) return res.json()
+          throw new Error('Failed to fetch favorite status')
+        })
+        .then(data => setIsFavorite(data.is_favorite))
+        .catch(console.error)
+    }
+  }, [user, token, teamId])
+
+  const toggleFavorite = async () => {
+    if (!user) {
+      navigate('/login')
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/teams/${teamId}/favorite/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Token ${token}`
+        },
+        body: JSON.stringify({
+          team_name: team.full_name,
+          team_abbreviation: team.abbreviation
+        })
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        setIsFavorite(data.is_favorite)
+      }
+    } catch (err) {
+      console.error('Error toggling favorite:', err)
+    }
+  }
 
   React.useEffect(() => {
     let mounted = true
@@ -88,14 +136,23 @@ export default function TeamPage() {
           e.target.src = `https://a.espncdn.com/i/teamlogos/nba/500/${espnAbbr}.png`
         }}
       />
-      <h1>{team.full_name}</h1>
+      <div className="team-header">
+        <h1>{team.full_name}</h1>
+        <button 
+          className="favorite-btn"
+          onClick={toggleFavorite}
+          title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+        >
+          {isFavorite ? "★" : "☆"}
+        </button>
+      </div>
       <div className='team-stats-row'>
         <TeamOverview stats={teamStats} />
         <TeamAverages averages={teamAverages} />
       </div>
       <div className='team-stats-row'>
         <TeamRoster roster={teamRoster} />
-        <TeamGameLog gameLog={teamGameLog} />
+        <TeamGameLog gameLog={teamGameLog} teamId={teamId} />
       </div>
     </div>
   )
